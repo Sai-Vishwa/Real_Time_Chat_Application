@@ -40,3 +40,4 @@ const ChatItem = ({ chat, isSelected, onClick }) => {
 };
 
 export default ChatItem;
+

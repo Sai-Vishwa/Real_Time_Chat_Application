@@ -107,6 +107,15 @@ async function seedDB() {
     (1, '/uploads/2025/01/alice_math.png', 'alice_math.png', 2048);
   `);
 
+  await client.query(`
+  INSERT INTO messages (sender_id, group_id, content, type) VALUES
+  (1, 1, 'Hey everyone, ready for todays session?', 'text'),
+  (3, 1, 'Yes Alice, lets start!', 'text'),
+  (2, 1, 'Im joining now.', 'text'),
+  (3, 2, 'Welcome to Physics Group!', 'text');
+`);
+
+
   console.log("✅ Database seeded successfully!");
 }
 
