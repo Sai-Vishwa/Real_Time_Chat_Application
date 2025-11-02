@@ -1,6 +1,5 @@
 import { Bot } from "lucide-react";
 
-// components/UI/Avatar.jsx
 const Avatar = ({ avatar, online, isBot, isGroup, size = 'md' }) => {
   
   const sizes = {

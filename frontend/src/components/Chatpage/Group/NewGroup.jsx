@@ -3,7 +3,6 @@ import GroupForm from "./GroupForm";
 import MemberSelector from "./MemberSelector";
 import { useState } from "react";
 
-// components/Group/NewGroup.jsx
 const NewGroup = ({ allUsers, onBack, onCreate }) => {
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState([]);
@@ -56,5 +55,6 @@ const NewGroup = ({ allUsers, onBack, onCreate }) => {
     </div>
   );
 };
+
 
 export default NewGroup;

@@ -2,7 +2,6 @@ import { User, Users } from "lucide-react";
 import ChatItem from "./ChatItem";
 import UserItem from "./UserItem";
 
-// components/Sidebar/ChatList.jsx
 const ChatList = ({ chats, users, selectedChat, searchQuery, onChatSelect, onUserChat }) => {
   
   return (

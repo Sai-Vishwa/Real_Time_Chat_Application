@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import Avatar from "../UI/Avatar";
 
-// components/Group/MemberSelector.jsx
 const MemberSelector = ({ users, selectedMembers, onToggle }) => {
   
   return (

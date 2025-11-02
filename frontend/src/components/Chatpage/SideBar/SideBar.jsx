@@ -25,7 +25,7 @@ const SidebarHeader = ({ searchQuery, onSearchChange, onNewGroup }) => {
     </div>
   );
 };
-// components/Sidebar/Sidebar.jsx
+
 const Sidebar = ({ 
   view, 
   chats, 
@@ -63,6 +63,5 @@ const Sidebar = ({
     </div>
   );
 };
-
 
 export default Sidebar

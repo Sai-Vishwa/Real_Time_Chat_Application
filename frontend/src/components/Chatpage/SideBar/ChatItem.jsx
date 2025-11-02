@@ -1,5 +1,6 @@
 import Avatar from "../UI/Avatar";
 
+
 const ChatItem = ({ chat, isSelected, onClick }) => {
   
   return (
@@ -38,6 +39,7 @@ const ChatItem = ({ chat, isSelected, onClick }) => {
     </div>
   );
 };
+
 
 export default ChatItem;
 
