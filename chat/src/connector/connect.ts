@@ -1,48 +1,42 @@
-// db.ts
+import mysql from "mysql2/promise";
+import fs from "fs";
 
-import mysql, { Connection } from 'mysql2/promise';
-import path from 'path';
-import dotenv from 'dotenv';
+const dbName = "Meow"; // 👈 your database name
 
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+const baseConfig = {
+  host: "student-mentor-protege-system.mysql.database.azure.com",
+  user: "",
+  password: "",
+  port: 3306,
+  ssl: {
+    rejectUnauthorized: false,
+    // ca: fs.readFileSync("./ssl/BaltimoreCyberTrustRoot.crt.pem"), // optional for Azure
+  },
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+};
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+let pool: mysql.Pool | null = null;
 
-dotenv.config();
+export async function connectMaster(): Promise<mysql.Pool> {
+  if (pool) return pool;
 
-let connectionMaster: Connection;
+  // 1️⃣ Connect *without* selecting a DB
+  const tempConnection = await mysql.createConnection(baseConfig);
+  console.log("🌐 Connected to Azure MySQL (no DB yet)");
 
-async function connectMaster() {
-  try {
-    if (connectionMaster) {
-      return connectionMaster;
-    }
-     
-    connectionMaster = await mysql.createPool({
-          host: 'localhost',
-          user: 'root',
-          password: process.env.PASSWORD,
-          database: process.env.DATABASE,
-          socketPath: process.env.SOCKETPATH_MASTER,
-          port: 3308,
-          waitForConnections: true,
-          connectionLimit: 10,
-          queueLimit: 0,
-        });
+  // 2️⃣ Create DB if not exists
+  await tempConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+  console.log(`✅ Database "${dbName}" is ready!`);
 
-    // console.log('✅ Connected to MySQL master with thread ID:', connectionMaster.threadId);
+  await tempConnection.end();
 
-    // const [rows] = await connectionMaster.query('SELECT NOW()');
-    // console.log('🕒 Current time:', rows);
+  // 3️⃣ Now create pool *with* the DB
+  pool = mysql.createPool({ ...baseConfig, database: dbName });
+  const connection = await pool.getConnection();
+  console.log(`📂 Connected to database "${dbName}"`);
+  connection.release();
 
-    return connectionMaster;
-
-  } catch (err) {
-    console.error('❌ Error connecting to MySQL:', err);
-    process.exit(1);
-  }
+  return pool;
 }
-
-export { connectMaster };
