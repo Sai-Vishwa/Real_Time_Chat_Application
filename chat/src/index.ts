@@ -5,7 +5,9 @@ import cors from "cors";
 import router from "./router/router.js";
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin : "*"
+}));
 app.use(express.json());
 
 // ✅ Create HTTP server from Express app
@@ -42,6 +44,6 @@ app.use(router)
 
 
 // ✅ Start both together
-server.listen(6000, () => {
-  console.log("Server running on port 6000");
+server.listen(5000, () => {
+  console.log("Server running on port 5000");
 });

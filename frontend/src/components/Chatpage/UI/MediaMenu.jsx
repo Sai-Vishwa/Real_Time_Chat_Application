@@ -1,4 +1,5 @@
 import { FileText, Film, Image } from "lucide-react";
+import React from "react";
 
 const MediaMenu = ({ onSelect, onClose }) => {
   const fileInputRef = React.useRef(null);

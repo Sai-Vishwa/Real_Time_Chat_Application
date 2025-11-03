@@ -1,18 +1,14 @@
-import React, { useState , useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Chatpage/SideBar/SideBar';
 import EmptyState from '../components/Chatpage/EmptyState';
 import ChatView from '../components/Chatpage/Chat/ChatView';
 import NewGroup from '../components/Chatpage/Group/NewGroup';
+import { Users } from 'lucide-react';
 
 const App = () => {
-
   const [view, setView] = useState('chats');
   const [selectedChat, setSelectedChat] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-
-
-
-
 
   const aiBot = {
     id: 'ai-bot',
@@ -56,37 +52,74 @@ const App = () => {
     ]
   });
 
-  const allUsers = [
+  const [allUsers, setAllUsers] = useState([
     { id: 6, name: 'Emma Wilson', avatar: '👩‍🎨', online: true },
     { id: 7, name: 'James Lee', avatar: '👨‍💻', online: false },
     { id: 8, name: 'Olivia Brown', avatar: '👩‍🔬', online: true },
     { id: 9, name: 'Noah Davis', avatar: '👨‍🎤', online: true },
     { id: 10, name: 'Sophia Martinez', avatar: '👩‍🏫', online: false },
-  ];
+  ]);
 
-  const handleSendMessage = (message) => {
-    if (!message.trim() || !selectedChat) return;
+  // FIXED: Handle both old string format and new object format
+  const handleSendMessage = (messageData) => {
+    if (!selectedChat) return;
 
-    const newMsg = {
-      id: Date.now(),
-      sender: 'You',
-      text: message,
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      read: false,
-      self: true
-    };
+    let newMsg;
+
+    // Check if it's the old format (just a string) or new format (object)
+    if (typeof messageData === 'string') {
+      // Old format - just text
+      newMsg = {
+        id: Date.now(),
+        sender: 'You',
+        text: messageData,
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        read: false,
+        self: true
+      };
+    } else {
+      // New format - object with text and/or file
+      if (messageData.file) {
+        // Message with file
+        newMsg = {
+          id: Date.now(),
+          sender: 'You',
+          text: messageData.text || messageData.file.file.name,
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          read: false,
+          self: true,
+          media: messageData.file.type,
+          fileName: messageData.file.file.name,
+          fileSize: `${(messageData.file.file.size / 1024).toFixed(1)} KB`,
+          imageUrl: messageData.filePreview
+        };
+      } else if (messageData.text && messageData.text.trim()) {
+        // Text only message
+        newMsg = {
+          id: Date.now(),
+          sender: 'You',
+          text: messageData.text,
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          read: false,
+          self: true
+        };
+      } else {
+        return; // Nothing to send
+      }
+    }
 
     setMessages(prev => ({
       ...prev,
       [selectedChat.id]: [...(prev[selectedChat.id] || []), newMsg]
     }));
 
+    // AI bot response
     if (selectedChat.isBot) {
       setTimeout(() => {
         const aiResponse = {
           id: Date.now() + 1,
           sender: 'AI Assistant',
-          text: `I received your message: "${message}". As a demo AI, I'm here to assist you with any questions!`,
+          text: `I received your message${newMsg.media ? ` with a ${newMsg.media}` : ''}: "${newMsg.text}". As a demo AI, I'm here to assist you with any questions!`,
           time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
           read: true,
           self: false,
@@ -100,83 +133,10 @@ const App = () => {
     }
   };
 
+  // This can now be optional since MessageInput handles everything
   const handleMediaUpload = async (type, file) => {
-    if (!selectedChat || !file) return;
-    
-    // Create loading message
-    const loadingMsg = {
-      id: Date.now(),
-      sender: 'You',
-      text: 'Uploading...',
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      read: false,
-      self: true,
-      media: type,
-      loading: true
-    };
-
-    setMessages(prev => ({
-      ...prev,
-      [selectedChat.id]: [...(prev[selectedChat.id] || []), loadingMsg]
-    }));
-
-    // Convert image to base64 using canvas
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const img = new Image();
-      img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Set canvas size to image size (with max width/height)
-        const maxWidth = 800;
-        const maxHeight = 600;
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        
-        // Simulate upload delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Replace loading message with actual message
-        const mediaMsg = {
-          id: loadingMsg.id,
-          sender: 'You',
-          text: file.name,
-          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          read: false,
-          self: true,
-          media: type,
-          fileName: file.name,
-          fileSize: `${(file.size / 1024).toFixed(1)} KB`,
-          imageUrl: type === 'image' ? imageDataUrl : null,
-          loading: false
-        };
-
-        setMessages(prev => ({
-          ...prev,
-          [selectedChat.id]: prev[selectedChat.id].map(msg => 
-            msg.id === loadingMsg.id ? mediaMsg : msg
-          )
-        }));
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    console.log('Media upload triggered:', type, file);
+    // The new MessageInput component handles this through onSendMessage
   };
 
   const handleCreateGroup = (groupName, selectedMembers) => {
@@ -236,14 +196,73 @@ const App = () => {
     setView('chat');
   };
 
+  useEffect(() => {
+    const loadChatData = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/chat-page", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
 
+        const resp = await res.json();
 
-  
+        if (resp.status === "error") {
+          console.error("Error fetching chat data:", resp.message);
+          return;
+        }
+
+        const { aiBot, chats, messages, allUsers } = resp.data;
+
+        setChats([aiBot, ...chats.map((chat) => ({
+          id: chat.id,
+          name: chat.name,
+          avatar: chat.avatar || '💬',
+          online: true,
+          isGroup: chat.isGroup,
+          members: chat.members || 0,
+          lastMessage: chat.lastMessage || '',
+          time: chat.time || '',
+          unread: chat.unread || 0
+        }))]);
+
+        const formattedMessages = {};
+        Object.entries(messages).forEach(([chatId, msgs]) => {
+          formattedMessages[chatId] = msgs.map((msg) => ({
+            id: msg.id,
+            sender: msg.sender,
+            text: msg.text,
+            time: msg.time,
+            read: true,
+            self: msg.self,
+            isBot: msg.isBot,
+            media: msg.media,
+            fileName: msg.fileName,
+            imageUrl: msg.imageUrl,
+            fileSize: msg.fileSize
+          }));
+        });
+        setMessages(formattedMessages);
+
+        setAllUsers(allUsers.map((user) => ({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar || '🙂',
+          online: user.online
+        })));
+
+        console.log("✅ Chat data loaded successfully");
+      } catch (error) {
+        console.error("❌ Error fetching chat data:", error);
+      }
+    };
+
+    loadChatData();
+  }, []);
 
   return (
-    <div className="h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
+    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl h-[90vh] bg-slate-900/50 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-800/50 flex">
-        
         <Sidebar
           view={view}
           chats={chats}

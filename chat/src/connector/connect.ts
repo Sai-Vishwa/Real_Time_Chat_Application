@@ -1,12 +1,23 @@
 import mysql from "mysql2/promise";
 import fs from "fs";
 
+import dotenv from 'dotenv';
+
+
+dotenv.config({ path: '.env' });
+
+
 const dbName = "Meow"; // 👈 your database name
+
+
+
+console.log("i print env hhete")
+console.log(process.env.AZURE_PASSWORD)
 
 const baseConfig = {
   host: "student-mentor-protege-system.mysql.database.azure.com",
-  user: "",
-  password: "",
+  user: process.env.AZURE_USER,
+  password: process.env.AZURE_PASSWORD,
   port: 3306,
   ssl: {
     rejectUnauthorized: false,
