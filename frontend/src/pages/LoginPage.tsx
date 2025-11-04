@@ -392,7 +392,7 @@ const ProfessionalLoginPage: React.FC = () => {
     
     try {
 
-      const res = await fetch(`http://localhost:4005/login`, {
+      const res = await fetch(`http://localhost:4004/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -400,16 +400,17 @@ const ProfessionalLoginPage: React.FC = () => {
           body: JSON.stringify({username: credentials.username, password: credentials.password}),    
         });
         const data = await res.json();
-        console.log(data.data.session)
+        console.log(data.session)
 
         if(data.status === "error"){
           setErrors({ general: data.message });
         }
         else{
-          Cookies.set("session", data.data.session, { expires: 7 });
+          Cookies.set("session", data.session, { expires: 7 });
           nav("/chat-page");
         }
     } catch (error) {
+      console.log(error)
       setErrors({ general: 'Connection error. Please try again.' });
     } finally {
       setIsLoading(false);

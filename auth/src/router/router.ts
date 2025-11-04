@@ -4,6 +4,7 @@ import {Request} from 'express';
 import {Response} from 'express';
 import { NextFunction } from 'express';
 import { RequestHandler } from 'express';
+import login from '../service/login.js';
 
 const router = Router();
 
@@ -13,10 +14,10 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
   };
 };
 
-  // router.post('/login', asyncHandler(async (req : Request, res : Response) => {
-  //   console.log("im in router and this is the request i got -> ",req.body);
-  //   await login(req,res);
-  // }));
+  router.post('/login', asyncHandler(async (req : Request, res : Response) => {
+    console.log("im in router and this is the request i got -> ",req.body);
+    await login(req,res);
+  }));
 
   // router.post('/chat-page', asyncHandler(async (req : Request, res : Response) => {
   //   console.log("im in router and this is the request i got -> ",req.body);

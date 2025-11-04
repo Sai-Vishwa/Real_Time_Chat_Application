@@ -5,6 +5,7 @@ import {Response} from 'express';
 import { NextFunction } from 'express';
 import { RequestHandler } from 'express';
 import fetchChatData from '../service/chatPage.js';
+import saveMessages from '../service/sendMessages.js';
 
 const router = Router();
 
@@ -24,10 +25,10 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
     await fetchChatData(req,res);
   }));
 
-  // router.post('/chat-history', asyncHandler(async (req : Request, res : Response) => {
-  //   console.log("im in router and this is the request i got -> ",req.body);
-  //   await login(req,res);
-  // }));
+  router.post('/send-messages', asyncHandler(async (req : Request, res : Response) => {
+    console.log("im in router and this is the request i got -> ",req.body);
+    await saveMessages(req,res);
+  }));
 
 
   // router.post('/create-placement', asyncHandler(async (req : Request, res : Response) => {

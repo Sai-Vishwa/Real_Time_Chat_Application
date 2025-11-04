@@ -4,6 +4,8 @@ import EmptyState from '../components/Chatpage/EmptyState';
 import ChatView from '../components/Chatpage/Chat/ChatView';
 import NewGroup from '../components/Chatpage/Group/NewGroup';
 import { Users } from 'lucide-react';
+import Cookies from 'js-cookie';
+
 
 const App = () => {
   const [view, setView] = useState('chats');
@@ -61,7 +63,7 @@ const App = () => {
   ]);
 
   // FIXED: Handle both old string format and new object format
-  const handleSendMessage = (messageData) => {
+  const handleSendMessage = async (messageData) => {
     if (!selectedChat) return;
 
     let newMsg;
@@ -112,6 +114,53 @@ const App = () => {
       ...prev,
       [selectedChat.id]: [...(prev[selectedChat.id] || []), newMsg]
     }));
+
+    try {
+      console.log("HHHHHHHHHHHHHHHHHHh  ")
+    const response = await fetch("http://localhost:5000/send-messages", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        // Add authorization header if needed
+        // "Authorization": `Bearer ${yourAuthToken}`
+      },
+      body: JSON.stringify({
+        chatId: selectedChat.id,
+        senderId: 'your-user-id', // Replace with actual user ID from auth
+        message: {
+          text: newMsg.text,
+          media: newMsg.media || null,
+          fileName: newMsg.fileName || null,
+          fileSize: newMsg.fileSize || null,
+          imageUrl: newMsg.imageUrl || null,
+          time: newMsg.time
+        }
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.status === "success") {
+      console.log("✅ Message saved to database:", result.data);
+      
+      // Optional: Update message with server-assigned ID
+      if (result.data.messageId) {
+        setMessages(prev => ({
+          ...prev,
+          [selectedChat.id]: prev[selectedChat.id].map(msg => 
+            msg.id === newMsg.id ? { ...msg, id: result.data.messageId } : msg
+          )
+        }));
+      }
+    } else {
+      console.error("❌ Failed to save message:", result.message);
+      // Optional: Show error notification to user
+      // You might want to mark the message as "failed" in the UI
+    }
+  } catch (error) {
+    console.error("❌ Error sending message to backend:", error);
+    // Optional: Show error notification and allow retry
+  }
 
     // AI bot response
     if (selectedChat.isBot) {
@@ -196,16 +245,25 @@ const App = () => {
     setView('chat');
   };
 
+
+
   useEffect(() => {
+
+    const session = Cookies.get('session')
+
     const loadChatData = async () => {
       try {
         const res = await fetch("http://localhost:5000/chat-page", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({})
+          body: JSON.stringify({
+            session : session
+          })
         });
 
         const resp = await res.json();
+
+        console.log(JSON.stringify(resp.data))
 
         if (resp.status === "error") {
           console.error("Error fetching chat data:", resp.message);
