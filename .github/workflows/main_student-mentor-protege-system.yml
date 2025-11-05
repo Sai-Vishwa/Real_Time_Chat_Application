@@ -33,8 +33,7 @@ jobs:
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}  # Only GitHub token needed
           action: "upload"
           app_location: "./frontend"      # path to your frontend code
-          output_location: "build"        # React build folder (default is build/)
+          output_location: "build"        # React build folder
