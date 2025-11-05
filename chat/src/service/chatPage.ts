@@ -72,15 +72,20 @@ const fetchChatData = async (req: Request, res: Response) => {
 
     // One-to-one chats: the user appears in chat names (Sai & Hussain, etc.)
     // or by inference of existing messages
-    const [directChats]: any = await db.query(
-      `SELECT DISTINCT c.id AS chatId
-       FROM chats c
-       JOIN messages m ON c.id = m.chat_id
-       WHERE m.sender_id = ? OR c.id IN (
-         SELECT DISTINCT chat_id FROM messages WHERE sender_id != ?
-       )`,
-      [currentUser.id, currentUser.id]
-    );
+    // ✅ One-to-one chats where this user is either sender or recipient
+const [directChats]: any = await db.query(
+  `SELECT DISTINCT m.chat_id AS chatId
+   FROM messages m
+   JOIN chats c ON m.chat_id = c.id
+   WHERE m.sender_id = ?
+      OR m.chat_id IN (
+        SELECT DISTINCT chat_id
+        FROM messages
+        WHERE sender_id = ?
+      )`,
+  [currentUser.id, currentUser.id]
+);
+
 
     const allChatIds = [
       ...new Set([

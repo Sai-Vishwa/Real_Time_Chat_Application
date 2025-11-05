@@ -6,11 +6,11 @@ import NewGroup from '../components/Chatpage/Group/NewGroup';
 import { Users } from 'lucide-react';
 import Cookies from 'js-cookie';
 
-
 const App = () => {
   const [view, setView] = useState('chats');
   const [selectedChat, setSelectedChat] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
 
   const aiBot = {
     id: 'ai-bot',
@@ -23,48 +23,92 @@ const App = () => {
     unread: 0
   };
 
-  const [chats, setChats] = useState([
-    aiBot,
-    { id: 1, name: 'Design Team', avatar: '🎨', online: true, isGroup: true, members: 12, lastMessage: 'New mockups are ready!', time: '2m', unread: 3 },
-    { id: 2, name: 'Sarah Chen', avatar: '👩‍💼', online: true, lastMessage: 'Thanks for the update', time: '5m', unread: 0 },
-    { id: 3, name: 'Dev Squad', avatar: '💻', online: false, isGroup: true, members: 8, lastMessage: 'Deployment successful', time: '1h', unread: 0 },
-    { id: 4, name: 'Michael Ross', avatar: '👨‍🔬', online: false, lastMessage: 'See you tomorrow', time: '3h', unread: 0 },
-    { id: 5, name: 'Marketing Hub', avatar: '📱', online: true, isGroup: true, members: 15, lastMessage: 'Campaign starts Monday', time: '5h', unread: 1 },
-  ]);
-
+  const [chats, setChats] = useState([aiBot]);
   const [messages, setMessages] = useState({
-    1: [
-      { id: 1, sender: 'Alex Kim', text: 'Check out the new design concept', time: '10:30', read: true, self: false },
-      { id: 2, sender: 'You', text: 'Looks amazing! Love the color palette', time: '10:32', read: true, self: true },
-      { id: 3, sender: 'Sarah Chen', text: 'Agreed! The gradient is perfect', time: '10:33', read: true, self: false },
-      { 
-        id: 4, 
-        sender: 'Alex Kim', 
-        text: 'design-mockup.png', 
-        time: '10:35', 
-        read: true, 
-        self: false, 
-        media: 'image', 
-        fileName: 'design-mockup.png',
-        imageUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%234f46e5;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%239333ea;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="400" height="300" fill="url(%23grad)"/%3E%3Ctext x="50%25" y="45%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="white" font-weight="bold"%3EDesign Mockup%3C/text%3E%3Ctext x="50%25" y="55%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.8)"%3EUI/UX Concept%3C/text%3E%3C/svg%3E'
-      },
-    ],
     'ai-bot': [
       { id: 1, sender: 'AI Assistant', text: 'Hello! I\'m your AI assistant. I can help you with questions, provide information, or just chat. How can I assist you today?', time: '09:00', read: true, self: false, isBot: true },
     ]
   });
+  const [allUsers, setAllUsers] = useState([]);
 
-  const [allUsers, setAllUsers] = useState([
-    { id: 6, name: 'Emma Wilson', avatar: '👩‍🎨', online: true },
-    { id: 7, name: 'James Lee', avatar: '👨‍💻', online: false },
-    { id: 8, name: 'Olivia Brown', avatar: '👩‍🔬', online: true },
-    { id: 9, name: 'Noah Davis', avatar: '👨‍🎤', online: true },
-    { id: 10, name: 'Sophia Martinez', avatar: '👩‍🏫', online: false },
-  ]);
+  // Transform backend data to frontend format
+  const transformBackendData = (backendData) => {
+    const { currentUser, users, chats: backendChats, messages: backendMessages } = backendData;
 
-  // FIXED: Handle both old string format and new object format
+    // Set current user
+    setCurrentUser(currentUser);
+
+    // Transform users list
+    const transformedUsers = users
+      .filter(user => user.id !== currentUser.id) // Exclude current user
+      .map(user => ({
+        id: user.id,
+        name: user.displayName,
+        avatar: user.avatar || '👤',
+        online: true // You can add online status from backend if available
+      }));
+
+    // Transform chats
+    const transformedChats = backendChats.map(chat => {
+      // Find the last message for this chat
+      const chatMessages = backendMessages.filter(msg => msg.chatId === chat.id);
+      const lastMsg = chatMessages[chatMessages.length - 1];
+
+      return {
+        id: chat.id,
+        name: chat.name,
+        avatar: chat.isGroup ? '👥' : getUserAvatar(chat, users, currentUser.id),
+        online: true,
+        isGroup: chat.isGroup,
+        members: chat.isGroup ? chat.members.length : undefined,
+        lastMessage: lastMsg ? lastMsg.text : 'Start chatting',
+        time: lastMsg ? lastMsg.time : 'now',
+        unread: 0 // You can calculate unread from backend data if available
+      };
+    });
+
+    // Transform messages - group by chatId
+    const transformedMessages = {};
+    backendChats.forEach(chat => {
+      const chatMsgs = backendMessages
+        .filter(msg => msg.chatId === chat.id)
+        .map(msg => ({
+          id: msg.id,
+          sender: msg.senderId === currentUser.id ? 'You' : getUserName(msg.senderId, users),
+          text: msg.text,
+          time: msg.time,
+          read: true, // You can add read status from backend if available
+          self: msg.senderId === currentUser.id,
+          media: msg.mediaType !== 'none' ? msg.mediaType : undefined,
+          fileName: msg.fileName,
+          imageUrl: msg.blobUrl,
+          fileSize: msg.fileName ? 'File' : undefined // You can calculate actual size if available
+        }));
+      
+      transformedMessages[chat.id] = chatMsgs;
+    });
+
+    return { transformedUsers, transformedChats, transformedMessages };
+  };
+
+  // Helper to get user avatar for 1-on-1 chats
+  const getUserAvatar = (chat, users, currentUserId) => {
+    if (chat.isGroup) return '👥';
+    
+    // For 1-on-1 chat, find the other user
+    // Assuming chat name format is "User1 & User2"
+    const otherUser = users.find(u => u.id !== currentUserId && chat.name.includes(u.displayName));
+    return otherUser?.avatar || '👤';
+  };
+
+  // Helper to get user display name
+  const getUserName = (userId, users) => {
+    const user = users.find(u => u.id === userId);
+    return user?.displayName || 'Unknown';
+  };
+
   const handleSendMessage = async (messageData) => {
-    if (!selectedChat) return;
+    if (!selectedChat || !currentUser) return;
 
     let newMsg;
 
@@ -110,59 +154,77 @@ const App = () => {
       }
     }
 
+    // Optimistically update UI
     setMessages(prev => ({
       ...prev,
       [selectedChat.id]: [...(prev[selectedChat.id] || []), newMsg]
     }));
 
+    // Update last message in chat list
+    setChats(prev => prev.map(chat => 
+      chat.id === selectedChat.id 
+        ? { ...chat, lastMessage: newMsg.text, time: newMsg.time }
+        : chat
+    ));
+
     try {
-      console.log("HHHHHHHHHHHHHHHHHHh  ")
-    const response = await fetch("http://localhost:5000/send-messages", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        // Add authorization header if needed
-        // "Authorization": `Bearer ${yourAuthToken}`
-      },
-      body: JSON.stringify({
-        chatId: selectedChat.id,
-        senderId: 'your-user-id', // Replace with actual user ID from auth
-        message: {
-          text: newMsg.text,
-          media: newMsg.media || null,
-          fileName: newMsg.fileName || null,
-          fileSize: newMsg.fileSize || null,
-          imageUrl: newMsg.imageUrl || null,
-          time: newMsg.time
-        }
-      })
-    });
-
-    const result = await response.json();
-
-    if (result.status === "success") {
-      console.log("✅ Message saved to database:", result.data);
+      const session = Cookies.get('session');
       
-      // Optional: Update message with server-assigned ID
-      if (result.data.messageId) {
-        setMessages(prev => ({
-          ...prev,
-          [selectedChat.id]: prev[selectedChat.id].map(msg => 
-            msg.id === newMsg.id ? { ...msg, id: result.data.messageId } : msg
-          )
-        }));
-      }
-    } else {
-      console.error("❌ Failed to save message:", result.message);
-      // Optional: Show error notification to user
-      // You might want to mark the message as "failed" in the UI
-    }
-  } catch (error) {
-    console.error("❌ Error sending message to backend:", error);
-    // Optional: Show error notification and allow retry
-  }
+      // Prepare backend payload
+     const formData = new FormData();
+      formData.append("session", session);
+      formData.append("chatId", selectedChat.id);
+      formData.append("senderId", currentUser.id);
+      formData.append("text", newMsg.text);
+      formData.append("mediaType", newMsg.media || "none");
+      formData.append("fileName", newMsg.fileName || "");
+      formData.append("time", newMsg.time);
 
-    // AI bot response
+      if (newMsg.file) {
+        formData.append("file", newMsg.file); // file = actual File object from <input>
+      }
+
+
+
+
+      // If there's a file, you'll need to upload it to blob storage first
+      // and get the blobUrl, then send that with the message
+      if (messageData.file) {
+        // TODO: Implement file upload to Azure Blob Storage
+        // const blobUrl = await uploadToBlob(messageData.file.file);
+        // payload.blobUrl = blobUrl;
+        // payload.blobName = generateBlobName(messageData.file.file.name);
+      }
+
+      const response = await fetch("http://localhost:5000/send-messages", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.status === "success") {
+        console.log("✅ Message saved to database:", result.data);
+        
+        // Update message with server-assigned ID if needed
+        if (result.data.messageId) {
+          setMessages(prev => ({
+            ...prev,
+            [selectedChat.id]: prev[selectedChat.id].map(msg => 
+              msg.id === newMsg.id ? { ...msg, id: result.data.messageId } : msg
+            )
+          }));
+        }
+      } else {
+        console.error("❌ Failed to save message:", result.message);
+        // TODO: Show error notification and maybe mark message as failed
+      }
+    } catch (error) {
+      console.error("❌ Error sending message to backend:", error);
+      // TODO: Show error notification
+    }
+
+    // AI bot response (only for AI bot chats)
     if (selectedChat.isBot) {
       setTimeout(() => {
         const aiResponse = {
@@ -182,58 +244,87 @@ const App = () => {
     }
   };
 
-  // This can now be optional since MessageInput handles everything
   const handleMediaUpload = async (type, file) => {
     console.log('Media upload triggered:', type, file);
     // The new MessageInput component handles this through onSendMessage
   };
 
-  const handleCreateGroup = (groupName, selectedMembers) => {
-    if (!groupName.trim() || selectedMembers.length === 0) return;
+  const handleCreateGroup = async (groupName, selectedMembers) => {
+    if (!groupName.trim() || selectedMembers.length === 0 || !currentUser) return;
 
-    const newGroup = {
-      id: Date.now(),
-      name: groupName,
-      avatar: '👥',
-      online: true,
-      isGroup: true,
-      members: selectedMembers.length,
-      lastMessage: 'Group created',
-      time: 'now',
-      unread: 0
-    };
+    try {
+      const session = Cookies.get('session');
+      
+      const response = await fetch("http://localhost:5000/create-group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session: session,
+          groupName: groupName,
+          members: [currentUser.id, ...selectedMembers] // Include current user
+        })
+      });
 
-    setChats(prev => [newGroup, ...prev]);
-    setMessages(prev => ({
-      ...prev,
-      [newGroup.id]: [{
-        id: 1,
-        sender: 'System',
-        text: `${groupName} was created`,
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        read: true,
-        self: false,
-        system: true
-      }]
-    }));
+      const result = await response.json();
 
-    setView('chats');
+      if (result.status === "success") {
+        const newGroup = {
+          id: result.data.groupId,
+          name: groupName,
+          avatar: '👥',
+          online: true,
+          isGroup: true,
+          members: selectedMembers.length + 1, // +1 for current user
+          lastMessage: 'Group created',
+          time: 'now',
+          unread: 0
+        };
+
+        setChats(prev => [newGroup, ...prev]);
+        setMessages(prev => ({
+          ...prev,
+          [newGroup.id]: [{
+            id: 1,
+            sender: 'System',
+            text: `${groupName} was created`,
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            read: true,
+            self: false,
+            system: true
+          }]
+        }));
+
+        setView('chats');
+        console.log("✅ Group created successfully");
+      } else {
+        console.error("❌ Failed to create group:", result.message);
+      }
+    } catch (error) {
+      console.error("❌ Error creating group:", error);
+    }
   };
 
   const handleUserChat = (user) => {
-    const existingChat = chats.find(c => c.id === user.id);
+    const existingChat = chats.find(c => 
+      !c.isGroup && !c.isBot && c.name.includes(user.name)
+    );
+    
     if (existingChat) {
       setSelectedChat(existingChat);
       setView('chat');
     } else {
+      // Create new chat
       const newChat = {
-        ...user,
+        id: `temp-${Date.now()}`, // Temporary ID
+        name: `${currentUser?.displayName} & ${user.name}`,
+        avatar: user.avatar,
+        online: user.online,
         lastMessage: 'Start chatting',
         time: 'now',
         unread: 0
       };
       setChats(prev => [newChat, ...prev]);
-      setMessages(prev => ({ ...prev, [user.id]: [] }));
+      setMessages(prev => ({ ...prev, [newChat.id]: [] }));
       setSelectedChat(newChat);
       setView('chat');
     }
@@ -245,71 +336,42 @@ const App = () => {
     setView('chat');
   };
 
-
-
   useEffect(() => {
-
-    const session = Cookies.get('session')
+    const session = Cookies.get('session');
 
     const loadChatData = async () => {
       try {
         const res = await fetch("http://localhost:5000/chat-page", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            session : session
-          })
+          body: JSON.stringify({ session: session })
         });
 
         const resp = await res.json();
-
-        console.log(JSON.stringify(resp.data))
 
         if (resp.status === "error") {
           console.error("Error fetching chat data:", resp.message);
           return;
         }
 
-        const { aiBot, chats, messages, allUsers } = resp.data;
+        console.log("Backend data:", resp.data);
 
-        setChats([aiBot, ...chats.map((chat) => ({
-          id: chat.id,
-          name: chat.name,
-          avatar: chat.avatar || '💬',
-          online: true,
-          isGroup: chat.isGroup,
-          members: chat.members || 0,
-          lastMessage: chat.lastMessage || '',
-          time: chat.time || '',
-          unread: chat.unread || 0
-        }))]);
+        const { transformedUsers, transformedChats, transformedMessages } = 
+          transformBackendData(resp.data);
 
-        const formattedMessages = {};
-        Object.entries(messages).forEach(([chatId, msgs]) => {
-          formattedMessages[chatId] = msgs.map((msg) => ({
-            id: msg.id,
-            sender: msg.sender,
-            text: msg.text,
-            time: msg.time,
-            read: true,
-            self: msg.self,
-            isBot: msg.isBot,
-            media: msg.media,
-            fileName: msg.fileName,
-            imageUrl: msg.imageUrl,
-            fileSize: msg.fileSize
-          }));
+        // Set all users (excluding current user, already filtered in transform)
+        setAllUsers(transformedUsers);
+
+        // Set chats (AI bot + transformed chats)
+        setChats([aiBot, ...transformedChats]);
+
+        // Set messages (AI bot messages + transformed messages)
+        setMessages({
+          'ai-bot': messages['ai-bot'], // Keep AI bot messages
+          ...transformedMessages
         });
-        setMessages(formattedMessages);
 
-        setAllUsers(allUsers.map((user) => ({
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar || '🙂',
-          online: user.online
-        })));
-
-        console.log("✅ Chat data loaded successfully");
+        console.log("✅ Chat data loaded and transformed successfully");
       } catch (error) {
         console.error("❌ Error fetching chat data:", error);
       }

@@ -1,100 +1,93 @@
 import { Request, Response } from "express";
+import multer from "multer";
+import blobServiceClient from "../connector/blob.js";
 import { connectMaster } from "../connector/connect.js";
 
-async function saveMessages(req: Request, res: Response) {
-  try {
-    const connectionMaster = await connectMaster();
+const upload = multer({ storage: multer.memoryStorage() });
 
-    // 1️⃣ Extract data from request body
-    const { chatId, senderId, message } = req.body;
+export const sendMessage = [
+  upload.single("file"),
 
-    console.log("Request body in saveMessages:", req.body);
+  async (req: Request, res: Response) => {
+    try {
+      const db = await connectMaster();
+      const { session, chatId, senderId, text, mediaType, fileName, time } = req.body;
 
-    if (!chatId || !senderId || !message || !message.text) {
-      res.status(400).json({
-        status: "error",
-        message: "Missing required fields: chatId, senderId, or message.text",
+      if (!session || !chatId || !senderId) {
+        return res.status(400).json({
+          status: "error",
+          message: "Missing required fields (session, chatId, senderId)",
+        });
+      }
+
+      // 🧠 1️⃣ Validate session
+      const [sessionUser]: any = await db.query(
+        `SELECT username FROM session WHERE session = ?`,
+        [session]
+      );
+
+      if (!sessionUser.length) {
+        return res.status(401).json({ status: "error", message: "Invalid session" });
+      }
+
+      // ☁️ 2️⃣ Prepare blob details
+      let blobName: string | null = null;
+      let blobUrl: string | null = null;
+
+      if (req.file) {
+        const containerClient = blobServiceClient.getContainerClient("uploads");
+        blobName = `${Date.now()}-${req.file.originalname}`;
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+        await blockBlobClient.uploadData(req.file.buffer, {
+          blobHTTPHeaders: { blobContentType: req.file.mimetype },
+        });
+
+        blobUrl = blockBlobClient.url;
+      }
+
+      // 💾 3️⃣ Save message in DB
+      await db.query(
+        `INSERT INTO messages (chat_id, sender_id, content, media_type, file_name, blob_name, blob_url, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+        [chatId, senderId, text || null, mediaType || "none", fileName || null, blobName, blobUrl]
+      );
+
+      // 🔍 4️⃣ Fetch inserted message (with formatted time)
+      const [inserted]: any = await db.query(
+        `SELECT id, chat_id AS chatId, sender_id AS senderId, content, media_type AS mediaType, file_name AS fileName,
+                blob_name AS blobName, blob_url AS blobUrl,
+                TIME_FORMAT(created_at, '%H:%i') AS time
+         FROM messages
+         WHERE chat_id = ? AND sender_id = ?
+         ORDER BY created_at DESC LIMIT 1`,
+        [chatId, senderId]
+      );
+
+      const message = inserted[0];
+
+      // ✅ 5️⃣ Send response
+      res.status(200).json({
+        status: "success",
+        message: "Message sent successfully",
+        data: {
+          id: message.id,
+          chatId: message.chatId,
+          senderId: message.senderId,
+          text: message.content,
+          time: message.time,
+          mediaType: message.mediaType,
+          fileName: message.fileName,
+          blobName: message.blobName,
+          blobUrl: message.blobUrl,
+        },
       });
-      return;
+    } catch (err) {
+      console.error("❌ Error in sendMessage:", err);
+      res.status(500).json({
+        status: "error",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
     }
-
-    // 2️⃣ Insert message into messages table
-    const insertQuery = `
-      INSERT INTO messages 
-        (chat_id, sender_id, content, media_type, media_file_name, media_blob_url, media_size, is_bot)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-    `;
-
-    const [result]: any = await connectionMaster.query(insertQuery, [
-      chatId,
-      senderId === "ai-bot" ? null : senderId, // handle bot or null sender
-      message.text || null,
-      message.media || null,
-      message.fileName || null,
-      message.imageUrl || null,
-      message.fileSize ? parseInt(message.fileSize) : null,
-      0, // is_bot = false
-    ]);
-
-    const messageId = result.insertId;
-
-    // 3️⃣ Update last message info in chats table
-    await connectionMaster.query(
-      `
-      UPDATE chats 
-      SET last_message = ?, last_message_time = ?
-      WHERE id = ?;
-      `,
-      [message.text || message.fileName, message.time, chatId]
-    );
-
-    // 4️⃣ Fetch the inserted message back for confirmation
-    const [rows]: any = await connectionMaster.query(
-      `
-      SELECT 
-        m.id, m.chat_id AS chatId, 
-        u.name AS sender, 
-        m.content AS text,
-        TIME_FORMAT(m.created_at, '%H:%i') AS time,
-        CASE WHEN m.is_bot = 1 THEN TRUE ELSE FALSE END AS isBot,
-        CASE WHEN m.sender_id IS NULL THEN TRUE ELSE FALSE END AS self,
-        m.media_type AS media,
-        m.media_file_name AS fileName,
-        m.media_blob_url AS imageUrl
-      FROM messages m
-      LEFT JOIN users u ON m.sender_id = u.id
-      WHERE m.id = ?;
-      `,
-      [messageId]
-    );
-
-    const savedMessage = rows[0];
-
-    // 5️⃣ Success response
-    res.status(200).json({
-      status: "success",
-      message: "Message saved successfully",
-      data: {
-        savedMessage,
-      },
-    });
-    return;
-  } catch (err: unknown) {
-    let message = "An error occurred while saving message";
-    if (err instanceof Error) {
-      message = err.message;
-      console.error("Error in saveMessages function:", message);
-    }
-
-    res.status(200).json({
-      status: "error",
-      message: message,
-      data: {
-        savedMessage: null,
-      },
-    });
-    return;
-  }
-}
-
-export default saveMessages;
+  },
+];
