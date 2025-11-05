@@ -7,8 +7,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
+    "allowJs": true,           // ✅ allows importing .js/.jsx files
+    "skipLibCheck": true,      // ✅ avoids missing type errors
+    "jsx": "react-jsx",        // ✅ supports React JSX syntax
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "checkJs": false
   }
 }

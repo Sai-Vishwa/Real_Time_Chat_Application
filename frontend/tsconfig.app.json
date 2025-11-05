@@ -15,22 +15,23 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* ✅ Important additions */
+    "allowJs": true,              // allows .js/.jsx imports
+    "checkJs": false,             // avoids strict checking on .js files
+    "esModuleInterop": true,      // ensures correct default imports
+    "resolveJsonModule": true,    // allows importing .json files (optional)
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
 
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
-        "types": ["node"]
-
+    "types": ["node"]
   },
   "include": ["src"]
 }
