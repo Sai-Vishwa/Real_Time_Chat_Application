@@ -1,79 +1,40 @@
-name: Build and deploy fullstack app to Azure Web App - student-mentor-protege-system
+name: Deploy Frontend to Azure Static Web Apps
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
 
 jobs:
-  build:
+  build_and_deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
+    name: Build and Deploy Job
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 20.19.0
+          node-version: '18'
 
-      # 🧩 FRONTEND BUILD
-      - name: Install and build frontend
+      - name: Install dependencies
+        run: npm ci
         working-directory: ./frontend
-        run: |
-          npm ci
-          npm run build
 
-      # 🧩 BACKEND BUILD
-      - name: Install and build backend
-        working-directory: ./backend
-        run: |
-          npm ci
-          npm run build
+      - name: Build frontend
+        run: npm run build
+        working-directory: ./frontend
 
-      # 🧩 Package everything for deployment
-      - name: Prepare deployment package
-        run: |
-          mkdir -p deploy
-          cp -r backend/dist deploy/backend
-          cp -r frontend/dist deploy/frontend || cp -r frontend/build deploy/frontend  # handles both Vite & CRA
-          cp backend/package.json deploy/
-          cp backend/package-lock.json deploy/
-
-      - name: Upload artifact for deploy
-        uses: actions/upload-artifact@v4
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
         with:
-          name: fullstack-app
-          path: deploy/
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: fullstack-app
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_1C8F25D3FB974B1F8F03DA87F52E4DE1 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2BF193C91EC949A88F8915D9BDB3C113 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5D82F8DCCDE14B6D937827DC81DD3B45 }}
-
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'student-mentor-protege-system'
-          slot-name: 'Production'
-          package: ./deploy
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "./frontend"      # path to your frontend code
+          output_location: "build"        # React build folder (default is build/)
