@@ -1,68 +1,79 @@
-
-import { Request , Response } from "express";
-import { stat } from "fs";
+import { Request, Response } from "express";
 import { randomBytes } from "crypto";
 import { connectMaster } from "../connector/connection.js";
 
-interface requestType {
-    username : string;
-    password : string;
-}
-
-interface passwordType {
-    password : string;
+interface LoginRequest {
+  username: string;
+  password: string;
 }
 
 const generateSession = (): string => {
-  return randomBytes(32).toString("hex"); 
+  return randomBytes(32).toString("hex");
 };
 
-async function login(req : Request & {body : requestType}, res: Response) {
-    try{
-            const  uname = req.body.username;
-            const password = req.body.password;
-            const connectionMaster = await connectMaster();
-            const [sysPassword] = await connectionMaster.query(`SELECT password FROM users WHERE username = ?`, [uname]);
-            const sysPwd : passwordType[] = sysPassword as passwordType[];
-            console.log("System password fetched: ", sysPwd);
-            if(sysPwd.length === 0){
-                res.status(200).json({
-                    status: "error",
-                    message: "Invalid login"
-                })
-                return
-            }
-            if(sysPwd[0].password !==  password){
-                res.status(200).json({
-                    status: "error",
-                    message: "Invalid login",
-                })
-                return
-            }
-            const session : string = generateSession();
-            await connectionMaster.query(`INSERT INTO session (session , username) values (? , ?)`, [session , uname]);
+async function login(req: Request & { body: LoginRequest }, res: Response) {
+  try {
+    const uname = req.body.username;
+    const password = req.body.password;
 
-            console.log("Login successful, session created: ", session);
-            res.status(200).json({
-                session: session,
-                status: "success",
-                message :"Login successful"
-            });
-            return;
+    const db = await connectMaster();
+
+    // 🔍 Fetch user details based on new seed schema
+    const [rows] = await db.query(
+      `SELECT id, username, password, display_name, avatar_emoji, role 
+       FROM users WHERE username = ?`,
+      [uname]
+    );
+
+    const users = rows as any[];
+
+    if (users.length === 0) {
+      return res.status(200).json({
+        status: "error",
+        message: "Invalid username or password",
+      });
     }
-    catch(err: unknown){
-        console.log("Login failed: ", err);
-        let message = "An error occurred during login";
-        if (err instanceof Error) {
-            message = err.message;
-        }
-        res.status(200).json({
-            status: "error",
-            message: message
-        });
-        return;
+
+    const user = users[0];
+
+    // 🔐 Password check
+    if (user.password !== password) {
+      return res.status(200).json({
+        status: "error",
+        message: "Invalid username or password",
+      });
     }
-    
+
+    // 🔁 Remove old sessions for safety (important for chat apps)
+    await db.query(`DELETE FROM session WHERE username = ?`, [uname]);
+
+    // 🔑 Create new session
+    const session = generateSession();
+    await db.query(
+      `INSERT INTO session (session, username) VALUES (?, ?)`,
+      [session, uname]
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Login successful",
+      session,
+      user: {
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name,
+        avatar_emoji: user.avatar_emoji,
+        role: user.role,
+      },
+    });
+  } catch (err: any) {
+    console.log("Login failed:", err);
+
+    return res.status(200).json({
+      status: "error",
+      message: err?.message || "Login failed due to server error",
+    });
+  }
 }
 
 export default login;

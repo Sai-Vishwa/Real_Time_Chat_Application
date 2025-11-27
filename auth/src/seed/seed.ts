@@ -3,12 +3,12 @@ import { connectMaster } from "../connector/connection.js";
 async function seedDB() {
   const db = await connectMaster();
 
-  // 🧨 Drop all tables first
+  // 🧨 Drop all tables
   await db.query(`
-    DROP TABLE IF EXISTS group_members, session , files, messages, chats, users;
+    DROP TABLE IF EXISTS group_members, session, messages, chats, users;
   `);
 
-  // 👥 Users table
+  // 👥 Users table (roles added)
   await db.query(`
     CREATE TABLE users (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -16,11 +16,12 @@ async function seedDB() {
       password VARCHAR(255) NOT NULL,
       display_name VARCHAR(100) NOT NULL,
       avatar_emoji VARCHAR(10) DEFAULT NULL,
+      role ENUM('student','mentor','ai_agent') NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  // 💬 Chats (1-to-1 or group)
+  // 💬 Chats table
   await db.query(`
     CREATE TABLE chats (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -30,7 +31,7 @@ async function seedDB() {
     );
   `);
 
-  // 👥 Group Members (only used when is_group = 1)
+  // 👥 Group Members
   await db.query(`
     CREATE TABLE group_members (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,7 +43,7 @@ async function seedDB() {
     );
   `);
 
-  // 📨 Messages (text, image, pdf)
+  // 📨 Messages (blob info kept)
   await db.query(`
     CREATE TABLE messages (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -59,71 +60,72 @@ async function seedDB() {
     );
   `);
 
-    await db.query(`
+  // 🔐 Sessions
+  await db.query(`
     CREATE TABLE session (
       id INT AUTO_INCREMENT PRIMARY KEY,
       session VARCHAR(100) NOT NULL,
       username VARCHAR(100) NOT NULL,
       FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
-    )
+    );
   `);
 
-  // 👤 Users
+  // 👥 Seed Users (students + mentors + AI agent)
   await db.query(`
-    INSERT INTO users (username, password, display_name, avatar_emoji)
+    INSERT INTO users (username, password, display_name, avatar_emoji, role)
     VALUES
-      ('sai', 'sai123', 'Sai Vishwa', '⚡'),
-      ('hussain', 'hussain123', 'Hussain', '🧠'),
-      ('prasanth', 'prasanth123', 'Prasanth', '🔥'),
-      ('bala', 'bala123', 'Bala', '🎯'),
-      ('aakash', 'aakash123', 'Aakash', '🚀');
+      ('mentor_sai', 'pass123', 'Mentor Sai', '🧠', 'mentor'),
+      ('mentor_hussain', 'pass123', 'Mentor Hussain', '📘', 'mentor'),
+      ('stud_bala', 'pass123', 'Student Bala', '🎯', 'student'),
+      ('stud_prasanth', 'pass123', 'Student Prasanth', '🚀', 'student'),
+      ('stud_ruben', 'pass123', 'Student Ruben', '🌸', 'student'),
+      ('ai_helper', 'pass123', 'AI Study Bot', '🤖', 'ai_agent');
   `);
 
-  // 💭 Chats (Sai’s perspective)
+  // 💬 Chats
   await db.query(`
     INSERT INTO chats (name, is_group)
     VALUES
-      ('Sai & Hussain', 0),
-      ('Sai & Prasanth', 0),
-      ('Sai & Bala', 0),
-      ('Tech Titans', 1);
+      ('Computer Science Group', 1),      -- Group mentorship
+      ('Chemistry Group', 1),  -- Another mentor group
+      ('Bala ↔ AI Bot', 0),         -- 1-to-1 AI doubt clearing
+      ('Ruben ↔ Mentor Sai', 0);     -- Student ↔ Mentor DM
   `);
 
-  // 👥 Group members for "Tech Titans"
+  // 👥 Group Members (mentor + protégés)
   await db.query(`
     INSERT INTO group_members (chat_id, user_id)
     VALUES
-      (4, 1), -- Sai
-      (4, 2), -- Hussain
-      (4, 3), -- Prasanth
-      (4, 4), -- Bala
-      (4, 5); -- Aakash
+      (1, 1),  -- Mentor Sai
+      (1, 3),  -- Bala
+      (1, 4),  -- Aakash
+      (1, 5),  -- Devi
+
+      (2, 2),  -- Mentor Hussain
+      (2, 4),  -- Aakash
+      (2, 3);  -- Bala
   `);
 
-  // 🌐 Azure blob samples
-  const imgBlob = 'https://youraccount.blob.core.windows.net/uploads/design-123.png';
-  const pdfBlob = 'https://youraccount.blob.core.windows.net/uploads/specs-456.pdf';
+  // 🌐 Sample Blob URLs
+const imgBlob = "https://studentmentorprotegesys.blob.core.windows.net/uploads/seed-assignment.png";
+const pdfBlob = "https://studentmentorprotegesys.blob.core.windows.net/uploads/seed-notes.pdf";
+
 
   // 💌 Messages
   await db.query(`
     INSERT INTO messages (chat_id, sender_id, content, media_type, file_name, blob_name, blob_url)
     VALUES
-      (1, 1, 'Hey Hussain, check this out!', 'none', NULL, NULL, NULL),
-      (1, 2, 'Bro this looks great 🔥', 'image', 'design.png', 'design-123.png', '${imgBlob}'),
+      (1, 1, 'Welcome students! Lets start strong 💪 with tech', 'none', NULL, NULL, NULL),
+      (1, 3, 'Sir, I uploaded my assignment image.', 'image', 'assignment.png', 'assignment-101.png', '${imgBlob}'),
 
-      (2, 1, 'Prasanth, here’s the new document', 'pdf', 'specs.pdf', 'specs-456.pdf', '${pdfBlob}'),
-      (2, 3, 'Nice, will review it now', 'none', NULL, NULL, NULL),
+      (3, 3, 'AI Bot, explain recursion?', 'none', NULL, NULL, NULL),
+      (3, 6, 'Sure! Recursion means a function calling itself 🔁', 'none', NULL, NULL, NULL),
 
-      (3, 1, 'Bala, backend is running fine?', 'none', NULL, NULL, NULL),
-      (3, 4, 'Yes vro, no bugs 😎', 'none', NULL, NULL, NULL),
-
-      (4, 1, 'Team, let’s deploy at 6 PM sharp!', 'none', NULL, NULL, NULL),
-      (4, 5, 'Got it', 'none', NULL, NULL, NULL),
-      (4, 3, 'All tests passed ✅', 'none', NULL, NULL, NULL),
-      (4, 2, 'Perfect coordination!', 'none', NULL, NULL, NULL);
+      (4, 5, 'Sir I need help with cloud notes.', 'pdf', 'unit2.pdf', 'notes-202.pdf', '${pdfBlob}'),
+      (4, 1, 'Kindly refer azure docs', 'none', NULL, NULL, NULL);
   `);
 
-  console.log("✅ Database seeded successfully with group + media support!");
+  console.log("✅ Student-Mentor-Protégé chat system seeded successfully!");
   process.exit(0);
 }
 

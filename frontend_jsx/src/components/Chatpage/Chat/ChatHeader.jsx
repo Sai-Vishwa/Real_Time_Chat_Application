@@ -1,7 +1,7 @@
 import { ArrowLeft, Bot, MoreVertical, Phone, Video } from "lucide-react";
 import Avatar from "../UI/Avatar";
 
-const ChatHeader = ({ chat, onBack }) => {
+const ChatHeader = ({ chat , onBack }) => {
   
   return (
     <div className="p-4 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-sm">

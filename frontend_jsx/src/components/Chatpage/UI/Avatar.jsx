@@ -1,6 +1,7 @@
 import { Bot } from "lucide-react";
 
-const Avatar = ({ avatar, online, isBot, isGroup, size = 'md' }) => {
+
+const Avatar = ({ avatar  , online, isBot, isGroup}) => {
   
   const sizes = {
     sm: 'w-10 h-10 text-xl',
@@ -10,7 +11,7 @@ const Avatar = ({ avatar, online, isBot, isGroup, size = 'md' }) => {
 
   return (
     <div className="relative">
-      <div className={`${sizes[size]} rounded-full flex items-center justify-center ${
+      <div className={`${sizes["md"]} rounded-full flex items-center justify-center ${
         isBot ? 'bg-linear-to-br from-purple-500 to-pink-500' :
         isGroup ? 'bg-linear-to-br from-cyan-500 to-blue-500' :
         'bg-linear-to-br from-blue-500 to-purple-500'

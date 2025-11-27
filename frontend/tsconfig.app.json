@@ -33,5 +33,5 @@
     },
     "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src", "../frontend_jsx/src/components", "../frontend_jsx/src/pages", "../frontend_jsx/src/lib"]
 }

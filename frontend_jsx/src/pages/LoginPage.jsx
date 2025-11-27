@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { motion, AnimatePresence } from 'framer-motion';
+
 import { Moon, Sun, Eye, EyeOff, Lock, User, AlertCircle, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
+import Button from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Alert } from '../components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Label } from '../components/ui/label';
 
 
 
 // Professional animation variants
-const containerVariants : Variants= {
+const containerVariants = {
   initial: { opacity: 0 },
   animate: { 
     opacity: 1,
@@ -24,7 +25,7 @@ const containerVariants : Variants= {
   }
 };
 
-const cardVariants : Variants = {
+const cardVariants = {
   initial: { 
     opacity: 0, 
     y: 20
@@ -39,7 +40,7 @@ const cardVariants : Variants = {
   }
 };
 
-const inputVariants : Variants = {
+const inputVariants  = {
   initial: { opacity: 0, y: 10 },
   animate: { 
     opacity: 1, 
@@ -51,7 +52,7 @@ const inputVariants : Variants = {
   }
 };
 
-const buttonVariants : Variants = {
+const buttonVariants = {
   initial: { opacity: 0 },
   animate: { 
     opacity: 1,
@@ -62,7 +63,7 @@ const buttonVariants : Variants = {
   }
 };
 
-const fadeVariants : Variants = {
+const fadeVariants = {
   initial: { opacity: 0 },
   animate: { 
     opacity: 1,
@@ -75,26 +76,26 @@ const fadeVariants : Variants = {
 };
 
 // TypeScript interfaces
-interface LoginCredentials {
-  username: string;
-  password: string;
-}
+// interface LoginCredentials {
+//   username: string;
+//   password: string;
+// }
 
-interface Theme {
-  isDark: boolean;
-  background: string;
-  cardBackground: string;
-  textPrimary: string;
-  textSecondary: string;
-  inputBackground: string;
-  buttonBackground: string;
-  buttonHover: string;
-  errorBackground: string;
-  borderColor: string;
-}
+// interface Theme {
+//   isDark: boolean;
+//   background: string;
+//   cardBackground: string;
+//   textPrimary: string;
+//   textSecondary: string;
+//   inputBackground: string;
+//   buttonBackground: string;
+//   buttonHover: string;
+//   errorBackground: string;
+//   borderColor: string;
+// }
 
 // Typewriter effect component
-const TypewriterText: React.FC<{ text: string; delay?: number; className?: string }> = ({ 
+const TypewriterText = ({ 
   text, 
   delay = 0, 
   className = '' 
@@ -128,10 +129,10 @@ const TypewriterText: React.FC<{ text: string; delay?: number; className?: strin
 };
 
 // Custom hook for theme management
-const useTheme = (): [Theme, () => void] => {
-  const [isDark, setIsDark] = useState<boolean>(false);
+const useTheme = () => {
+  const [isDark, setIsDark] = useState(false);
 
-  const theme: Theme = {
+  const theme = {
     isDark,
     background: isDark 
       ? 'bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950' 
@@ -156,7 +157,7 @@ const useTheme = (): [Theme, () => void] => {
     borderColor: isDark ? 'border-gray-800/50' : 'border-gray-200/50'
   };
 
-  const toggleTheme = (): void => {
+  const toggleTheme = () => {
     setIsDark(prev => !prev);
   };
 
@@ -164,7 +165,7 @@ const useTheme = (): [Theme, () => void] => {
 };
 
 // Professional loading component
-const ProfessionalLoader: React.FC = () => (
+const ProfessionalLoader = () => (
   <div className="flex items-center space-x-3">
     <div className="flex space-x-1">
       {[0, 1, 2].map((i) => (
@@ -186,13 +187,13 @@ const ProfessionalLoader: React.FC = () => (
 );
 
 // Theme toggle component
-interface ThemeToggleProps {
-  isDark: boolean;
-  onToggle: () => void;
-  buttonStyles: string;
-}
+// interface ThemeToggleProps {
+//   isDark: boolean;
+//   onToggle: () => void;
+//   buttonStyles: string;
+// }
 
-const ThemeToggle: React.FC<ThemeToggleProps> = ({ isDark, onToggle, buttonStyles }) => (
+const ThemeToggle = ({ isDark, onToggle, buttonStyles }) => (
   <motion.div 
     className="absolute top-6 right-6 z-20"
     initial={{ opacity: 0 }}
@@ -220,7 +221,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isDark, onToggle, buttonStyle
 );
 
 // Subtle background grid
-const BackgroundGrid: React.FC<{ isDark: boolean }> = ({ isDark }) => (
+const BackgroundGrid = ({ isDark }) => (
   <motion.div 
     className="absolute inset-0 overflow-hidden pointer-events-none opacity-30"
     initial={{ opacity: 0 }}
@@ -258,19 +259,19 @@ const BackgroundGrid: React.FC<{ isDark: boolean }> = ({ isDark }) => (
 );
 
 // Professional input field
-interface InputFieldProps {
-  id: string;
-  label: string;
-  type: 'text' | 'password';
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  theme: Theme;
-  icon?: React.ReactNode;
-  error?: string;
-}
+// interface InputFieldProps {
+//   id: string;
+//   label: string;
+//   type: 'text' | 'password';
+//   placeholder: string;
+//   value: string;
+//   onChange: (value: string) => void;
+//   theme: Theme;
+//   icon?: React.ReactNode;
+//   error?: string;
+// }
 
-const ProfessionalInput: React.FC<InputFieldProps> = ({ 
+const ProfessionalInput = ({ 
   id, label, type, placeholder, value, onChange, theme, icon, error 
 }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -283,7 +284,7 @@ const ProfessionalInput: React.FC<InputFieldProps> = ({
       className="space-y-2"
       variants={inputVariants}
     >
-      <Label 
+      <Label   
         htmlFor={id} 
         className={`text-sm font-medium transition-colors duration-200 ${
           isFocused ? (theme.isDark ? 'text-gray-200' : 'text-gray-800') : theme.textSecondary
@@ -304,7 +305,7 @@ const ProfessionalInput: React.FC<InputFieldProps> = ({
           type={inputType}
           placeholder={placeholder}
           value={value}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={`h-11 transition-all duration-200 ${icon ? 'pl-10' : ''} ${
@@ -345,13 +346,13 @@ const ProfessionalInput: React.FC<InputFieldProps> = ({
 };
 
 // Main login component
-const ProfessionalLoginPage: React.FC = () => {
-  const [credentials, setCredentials] = useState<LoginCredentials>({
+function LoginPage () {
+  const [credentials, setCredentials] = useState({
     username: '',
     password: ''
   });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [errors, setErrors] = useState<{ username?: string; password?: string; general?: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const [theme, toggleTheme] = useTheme();
   const [showWelcome, setShowWelcome] = useState(true);
   const nav = useNavigate();
@@ -362,15 +363,15 @@ const ProfessionalLoginPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleInputChange = (field: keyof LoginCredentials) => (value: string): void => {
+  const handleInputChange = (field) => (value) => {
     setCredentials(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: typeof errors = {};
+  const validateForm = () => {
+    const newErrors = {};
     
     if (!credentials.username.trim()) {
       newErrors.username = 'Username is required';
@@ -384,7 +385,7 @@ const ProfessionalLoginPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (): Promise<void> => {
+  const handleSubmit = async () => {
     if (!validateForm()) return;
     
     setIsLoading(true);
@@ -550,4 +551,4 @@ const ProfessionalLoginPage: React.FC = () => {
   );
 };
 
-export default ProfessionalLoginPage;
+export default LoginPage;

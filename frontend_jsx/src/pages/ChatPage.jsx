@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/Chatpage/SideBar/SideBar';
-import EmptyState from '../components/Chatpage/EmptyState';
-import ChatView from '../components/Chatpage/Chat/ChatView';
-import NewGroup from '../components/Chatpage/Group/NewGroup';
+import Sidebar from '../../../frontend_jsx/src/components/Chatpage/SideBar/SideBar';
+import EmptyState from '../../../frontend_jsx/src/components/Chatpage/EmptyState';
+import ChatView from '../../../frontend_jsx/src/components/Chatpage/Chat/ChatView';
+import NewGroup from '../../../frontend_jsx/src/components/Chatpage/Group/NewGroup';
 import { Users } from 'lucide-react';
 import Cookies from 'js-cookie';
 
